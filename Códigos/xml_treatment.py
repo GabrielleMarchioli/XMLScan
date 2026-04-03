@@ -1,5 +1,4 @@
 import xml.etree.ElementTree as ET
-from calTributos import CalTributos
 import os
 #apenas para developer, depois o caminho vai dar pela tela do tkinter
 caminho = os.getcwd()
@@ -47,6 +46,16 @@ class Xml_Treatment:
         valores_impostos = {
             'BASE_CALC': None,
         }
+        tag_base_calculo = self.root.find(".//nfe:total", self.ns)
+        tag_vbc = self.root.find(".//nfe:ICMSTot", self.ns)
+        if tag_base_calculo is not None:
+            vbc = tag_vbc.find("nfe:vBC", self.ns)
+            if not float(vbc.text):
+                vbc = tag_vbc.find("nfe:vNF", self.ns)
+        else:
+            vbc = None
+        valores_impostos['BASE_CALC'] = self.get_float(vbc)
+
         #desenvolver lógica para notas antigas
 
         return valores_impostos
@@ -66,6 +75,8 @@ class Xml_Treatment:
 
         if tag_base_calculo is not None:
             vbc = tag_base_calculo.find("nfe:vBC", self.ns)
+            if not float(vbc.text):
+                vbc = tag_base_calculo.find("nfe:vNF", self.ns)
         else:
             vbc = None
 
@@ -95,19 +106,19 @@ class Xml_Treatment:
         return estado_nota if estado_nota else 0
 
     @staticmethod
-    def get_float(tag):
+    def get_float(tag: float):
         return float(tag.text) if tag is not None else 0.0
-
-if __name__ == "__main__":
-    # rodar em loop de acordo com o numero de notas
-    cont = 0
-    for i in os.listdir(f'{caminho.split('Códigos')[0]}\\Notas\\'):
-        caminho_nota = f'{caminho.split('Códigos')[0]}\\Notas\\{i}'
-        # inicia a classe e pega os valores presentes na nota
-        resultado = Xml_Treatment(caminho_nota)
-        valores_notas = resultado.return_elements_taxes
-        estado = resultado.state
-        # chama a classe de calcular o tributo
-        cal_trib = CalTributos(estado, valores_notas['BASE_CALC'])
-        print(f'Valores da nota {cont + 1} do estado de {estado}: \n{valores_notas}\n\nValor dos impostos\n{cal_trib.calcular_json()}\n')
-        cont +=1
+#
+# if __name__ == "__main__":
+#     # rodar em loop de acordo com o numero de notas
+#     cont = 0
+#     for i in os.listdir(f'{caminho.split('Códigos')[0]}\\Notas Antigas\\'):
+#         caminho_nota = f'{caminho.split('Códigos')[0]}\\Notas Antigas\\{i}'
+#         # inicia a classe e pega os valores presentes na nota
+#         resultado = Xml_Treatment(caminho_nota)
+#         valores_notas = resultado.return_elements_taxes
+#         estado = resultado.state
+#         # chama a classe de calcular o tributo
+#         cal_trib = CalTributos(estado, valores_notas['BASE_CALC'])
+#         print(f'Valores da nota {cont + 1} do estado de {estado}: \n{valores_notas}\n\nValor dos impostos\n{cal_trib.calcular_json()}\n')
+#         cont +=1
