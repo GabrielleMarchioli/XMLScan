@@ -43,6 +43,7 @@ class CalTributos:
     def valor_es(estado):
         dict_imp_estado = {
             'SP': {'IBS': 0.0177, 'CBS': 0.0088, 'IS': 0.020},
-            'RJ': {'IBS': 0.018, 'CBS': 0.0088, 'IS': 0.020}
+            'RJ': {'IBS': 0.018, 'CBS': 0.0088, 'IS': 0.020},
+            'MG': {'IBS': 0.018, 'CBS': 0.0088, 'IS': 0.020}
         }
         return dict_imp_estado.get(estado)
