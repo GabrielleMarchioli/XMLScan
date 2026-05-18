@@ -13,6 +13,7 @@ from Códigos import api_validation
 from xml_treatment import Xml_Treatment
 from calTributos import CalTributos
 from api_validation import Api_validation
+from api_cotacao import Api_cotacao
 
 path = os.getcwd()
 
@@ -85,7 +86,11 @@ class TelaPrincipal(QWidget):
         self.btn_validar_xml.setIcon(QIcon(os.path.join(path, 'assets', 'validar_xml.png')))
         self.btn_validar_xml.setIconSize(QSize(24, 24))
 
-        for btn in [self.btn_inicio, self.btn_validar_impostos, self.btn_validar_xml]:
+        self.btn_buscar_cotacao = QPushButton("Buscar Cotação")
+        # self.btn_buscar_cotacao.setIcon(QIcon(os.path.join(path, 'assets', 'validar_impostos.png')))
+        self.btn_buscar_cotacao.setIconSize(QSize(24, 24))
+
+        for btn in [self.btn_inicio, self.btn_validar_impostos, self.btn_validar_xml, self.btn_buscar_cotacao]:
             btn.setMinimumHeight(50)
             btn.setStyleSheet("""
                 QPushButton {
@@ -102,6 +107,7 @@ class TelaPrincipal(QWidget):
         menu_lateral.addWidget(self.btn_inicio)
         menu_lateral.addWidget(self.btn_validar_impostos)
         menu_lateral.addWidget(self.btn_validar_xml)
+        menu_lateral.addWidget(self.btn_buscar_cotacao)
         menu_lateral.addStretch()
 
         menu_widget = QWidget()
@@ -322,6 +328,8 @@ QGroupBox::title { subcontrol-origin: margin; left: 230px; color: #196464; paddi
         self.btn_validar_impostos.clicked.connect(self.validar_impostos)
         #valida xml
         self.btn_validar_xml.clicked.connect(self.validar_xml)
+        #busca cotacao
+        self.btn_buscar_cotacao.clicked.connect(self.pegar_cotacao)
         #mostra a pag inicial (banco de dados)
         self.btn_inicio.clicked.connect(self.pag_inicial)
         self.btn_select_arq.clicked.connect(self.selecionar_arquivo)
@@ -397,15 +405,43 @@ QGroupBox::title { subcontrol-origin: margin; left: 250px; color: #196464; paddi
         self.area_log.clear()
         # self.area_log.append(f'Em desenvolvimento. Pronto na Sprint 2')
 
+    def pegar_cotacao(self):
+        self.area_log.clear()
+        self.filtro_numnfe.hide()
+        self.filtro_data.hide()
+        self.filtro_tipo.hide()
+        self.btn_filtrar.hide()
+        self.btn_select_xml.hide()
+        self.btn_select_arq.hide()
+
+        cotacao = Api_cotacao(invoice_price=0.0)
+        self.adicionar_resultado_api_cotacao(cotacao)
+
     def pag_inicial(self):
         self.grupo_log.setTitle("Histórico e Log de atividades")
+        self.btn_select_xml.hide()
         self.btn_select_arq.hide()
         self.filtro_numnfe.show()
         self.filtro_data.show()
         self.filtro_tipo.show()
         self.btn_filtrar.show()
         self.area_log.clear()
-        self.area_log.append(f'Em desenvolvimento. Pronto na Sprint 3')
+        self.area_log.append(f'Em desenvolvimento.  ')
+
+    def adicionar_resultado_api_cotacao(self, cotacao):
+        bloco = f"""
+        <div style="
+            background-color: #e8f5f4;
+            border: 2px solid #9bc8c7;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        ">
+            <div><b>Cotação Dólar: </b> {round(cotacao.response['cotacao']['USD'], 2) if cotacao.response['cotacao']['USD'] else 'Não há cotação de Dólar para final de semana'}</div>
+            <div><b>Cotação Euro: </b> {round(cotacao.response['cotacao']['EUR'], 2) if cotacao.response['cotacao']['EUR'] else 'Não há cotação de Euro para final de semana'}</div>
+            <div><b>Status API:</b> {cotacao.status_code}</div>
+        """
+        self.area_log.append(bloco + '<div style="height: 120px;"></div>')
 
     def adicionar_resultado_api(self, nome_nota, response, status_code):
         bloco = f"""
@@ -423,7 +459,7 @@ QGroupBox::title { subcontrol-origin: margin; left: 250px; color: #196464; paddi
         self.area_log.append(bloco + '<div style="height: 120px;"></div>')
 
     #faz blocos no textedit
-    def adicionar_resultado(self, nota_nova, numero, valor, status):
+    def adicionar_resultado(self, nota_nova, numero, valor, status, cotacao):
         if nota_nova:
             status_imp = 'OK'
             for tipo_imposto in ['IBS', 'CBS', 'IS']:
@@ -449,6 +485,8 @@ QGroupBox::title { subcontrol-origin: margin; left: 250px; color: #196464; paddi
                 <div><b>Valor Calculado IBS/CBS/IS:</b> R${status['IBS']}/ R${status['CBS']}/ R${status['IS']}</div>
                 <div><b>Total Impostos:</b> {status['total_impostos']}</div>
                 <div><b>Status:</b> {status_imp}</div>
+                <div><b>Valor da nota em USD:</b> {round(cotacao['usd_convert'], 2) if cotacao['usd_convert'] else 'Não há cotação de Dólar para final de semana'}</div>
+                <div><b>Valor da nota em EUR:</b> {round(cotacao['eur_convert'], 2) if cotacao['eur_convert'] else 'Não há cotação de Euro para final de semana'}</div>
             </div>
             """
         else:
@@ -466,6 +504,8 @@ QGroupBox::title { subcontrol-origin: margin; left: 250px; color: #196464; paddi
                 <div><b>Valor Total Nota:</b> R${valor['BASE_CALC']}</div>
                 <div><b>Valor Simulado IBS/CBS/IS:</b> R${status['IBS']}/ R${status['CBS']}/ R${status['IS']}</div>
                 <div><b>Total Impostos:</b> {status['total_impostos']}</div>
+                <div><b>Valor da nota em USD:</b>R$  {round(cotacao['usd_convert'], 2)}</div>
+                <div><b>Valor da nota em EUR:</b>R$ {round(cotacao['eur_convert'], 2)}</div>
             </div>
             """
 
@@ -496,7 +536,8 @@ QGroupBox::title { subcontrol-origin: margin; left: 250px; color: #196464; paddi
                 estado = resultado.state
                 nome_nota = i.split('/')[-1]
                 cal_trib = CalTributos(estado, valores_notas['BASE_CALC'])
-                self.adicionar_resultado(nota_nova, nome_nota, valores_notas, cal_trib.calcular_json())
+                cotacao = Api_cotacao(invoice_price=(valores_notas['BASE_CALC']))
+                self.adicionar_resultado(nota_nova, nome_nota, valores_notas, cal_trib.calcular_json(), cotacao.response)
                 cont += 1
         else:
             cont = 0
@@ -506,7 +547,7 @@ QGroupBox::title { subcontrol-origin: margin; left: 250px; color: #196464; paddi
                 resultado = Xml_Treatment(caminho_nota)
                 string_xml = resultado.return_string_invoice
                 nome_nota = i.split('/')[-1]
-                xml_validation = Api_validation(string_xml)
+                xml_validation = Api_validation(string_xml, None)
                 self.adicionar_resultado_api(nome_nota, xml_validation.response, xml_validation.status_code)
                 cont += 1
 
@@ -626,6 +667,6 @@ class Tela_Login(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    janela = TelaPrincipal()#Tela_Login() #TelaPrincipal()
+    janela = Tela_Login()#Tela_Login() #TelaPrincipal()
     janela.show()
     sys.exit(app.exec())
