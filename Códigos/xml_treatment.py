@@ -19,9 +19,9 @@ class Xml_Treatment:
     @property
     def return_elements_taxes(self):
         if self._isnew_invoice():
-            return self._return_values_new_inv()
+            return self._isnew_invoice(), self._return_values_new_inv()
         else:
-            return self._return_values_old_inv()
+            return self._isnew_invoice(), self._return_values_old_inv()
 # ______________________________________________________________________________________________________________________
 # Funções de análise de classe, não usar métodos
 
