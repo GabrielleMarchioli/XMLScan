@@ -8,44 +8,21 @@ from PyQt6.QtCore import Qt, QDate, QSize
 from PyQt6.QtGui import QIcon
 import os
 from tkinter import filedialog
-
 from Códigos import api_validation
 from xml_treatment import Xml_Treatment
 from calTributos import CalTributos
 from api_validation import Api_validation
 from api_cotacao import Api_cotacao
+from db_connection import *
 
 path = os.getcwd()
-
-def selecionar_arquivo():
-    caminho = filedialog.askopenfilenames(
-        title="Selecione um arquivo",
-        filetypes=[("Arquivos XML", "*.xml"), ("Todos os arquivos", "*.*")]
-    )
-
-    if caminho:
-        print('_'*50)
-        test(caminho)
-        print('_'*50)
-
-def test(path):
-    # rodar em loop de acordo com o numero de notas
-    cont = 0
-    for i in path:
-        caminho_nota = i #f'{caminho.split('Códigos')[0]}\\Notas\\Notas Novas\\{i}'
-        # inicia a classe e pega os valores presentes na nota
-        resultado = Xml_Treatment(caminho_nota)
-        valores_notas = resultado.return_elements_taxes
-        estado = resultado.state
-        # chama a classe de calcular o tributo
-        cal_trib = CalTributos(estado, valores_notas['BASE_CALC'])
-        print(f'Valores da nota {cont + 1} do estado de {estado}: \n{valores_notas}\n\nValor dos impostos\n{cal_trib.calcular_json()}\n')
-        cont +=1
 
 
 class TelaPrincipal(QWidget):
     def __init__(self):
         self.validar_impostos_checked = False
+        self.db = init_db()
+        # self.db_treatment = None
         super().__init__()
         self.setWindowTitle("xmlScan")
         self.setFixedSize(1000, 700)
@@ -178,8 +155,8 @@ QGroupBox::title { subcontrol-origin: margin; left: 230px; color: #196464; paddi
         # FILTRO NF-e
         # =========================
         self.filtro_numnfe = QLineEdit(self.grupo_log)
-        self.filtro_numnfe.setPlaceholderText("Número NF-e")
-        self.filtro_numnfe.setGeometry(0, 60, 194, 25)
+        self.filtro_numnfe.setPlaceholderText("Chave NF-e")
+        self.filtro_numnfe.setGeometry(0, 60, 295, 25)
         self.filtro_numnfe.setStyleSheet("""
             color: black;
             background-color: #dff2f0;
@@ -191,64 +168,64 @@ QGroupBox::title { subcontrol-origin: margin; left: 230px; color: #196464; paddi
         # =========================
         # FILTRO DATA
         # =========================
-        self.filtro_data = QDateEdit(self.grupo_log)
-        self.filtro_data.setCalendarPopup(True)
-        self.filtro_data.setDate(QDate.currentDate())
-        self.filtro_data.setGeometry(210, 60, 150, 25)
-        self.filtro_data.setStyleSheet("""
-            QDateEdit {
-                color: black;
-                background-color: #dff2f0;
-                border: 3px solid #9bc8c7;
-                border-radius: 6px;
-                font-size: 11px;
-                padding-left: 5px;
-            }
-
-            /* Calendário popup */
-            QCalendarWidget QWidget {
-                background-color: white;
-                color: black;
-            }
-
-            QCalendarWidget QToolButton {
-                background-color: #196464;
-                color: white;
-                border: none;
-                padding: 5px;
-            }
-
-            QCalendarWidget QMenu {
-                background-color: white;
-                color: black;
-            }
-
-            QCalendarWidget QSpinBox {
-                background-color: white;
-                color: black;
-            }
-
-            QCalendarWidget QAbstractItemView:enabled {
-                background-color: white;
-                color: black;
-                selection-background-color: #1b6566;
-                selection-color: white;
-            }
-        """)
+        # self.filtro_data = QDateEdit(self.grupo_log)
+        # self.filtro_data.setCalendarPopup(True)
+        # self.filtro_data.setDate(QDate.currentDate())
+        # self.filtro_data.setGeometry(300, 60, 290, 25)
+        # self.filtro_data.setStyleSheet("""
+        #     QDateEdit {
+        #         color: black;
+        #         background-color: #dff2f0;
+        #         border: 3px solid #9bc8c7;
+        #         border-radius: 6px;
+        #         font-size: 11px;
+        #         padding-left: 5px;
+        #     }
+        #
+        #     /* Calendário popup */
+        #     QCalendarWidget QWidget {
+        #         background-color: white;
+        #         color: black;
+        #     }
+        #
+        #     QCalendarWidget QToolButton {
+        #         background-color: #196464;
+        #         color: white;
+        #         border: none;
+        #         padding: 5px;
+        #     }
+        #
+        #     QCalendarWidget QMenu {
+        #         background-color: white;
+        #         color: black;
+        #     }
+        #
+        #     QCalendarWidget QSpinBox {
+        #         background-color: white;
+        #         color: black;
+        #     }
+        #
+        #     QCalendarWidget QAbstractItemView:enabled {
+        #         background-color: white;
+        #         color: black;
+        #         selection-background-color: #1b6566;
+        #         selection-color: white;
+        #     }
+        # """)
 
         # =========================
         # FILTRO TIPO
         # =========================
-        self.filtro_tipo = QComboBox(self.grupo_log)
-        self.filtro_tipo.addItems(["Todos", "Validação XML", "Validação Impostos", "Erro"])
-        self.filtro_tipo.setGeometry(380, 60, 200, 25)
-        self.filtro_tipo.setStyleSheet("""
-            background-color: #dff2f0;
-            color: black;
-            border: 3px solid #9bc8c7;
-            border-radius: 6px;
-            font-size: 11px;
-        """)
+        # self.filtro_tipo = QComboBox(self.grupo_log)
+        # self.filtro_tipo.addItems(["Todos", "Validação XML", "Validação Impostos", "Erro"])
+        # self.filtro_tipo.setGeometry(380, 60, 200, 25)
+        # self.filtro_tipo.setStyleSheet("""
+        #     background-color: #dff2f0;
+        #     color: black;
+        #     border: 3px solid #9bc8c7;
+        #     border-radius: 6px;
+        #     font-size: 11px;
+        # """)
 
         # =========================
         # Selecionar Notas Area para o botao validar impostos
@@ -339,11 +316,17 @@ QGroupBox::title { subcontrol-origin: margin; left: 230px; color: #196464; paddi
     # FUNÇÃO DO BOTÃO
     # =====================================================
     def filtrar_log(self):
-        data = self.filtro_data.date().toString("dd/MM/yyyy")
-        tipo = self.filtro_tipo.currentText()
+        self.area_log.clear()
+        # data = self.filtro_data.date().toString("dd-MM-yyyy")
         num_nfe = self.filtro_numnfe.text()
 
-        self.area_log.append(f"Filtro aplicado -> Data: {data} | Tipo: {tipo} | Num NFe: {num_nfe}" if num_nfe else f"Filtro aplicado -> Data: {data} | Tipo: {tipo}")
+        resultado = self.db.get_info_from_db(chave_nfe=num_nfe)
+        if resultado:
+            for i in resultado:
+                self.add_result_db(element=i)
+        else:
+            self.area_log.append(f"Nota não encontrada para os filtros\nChave NF: {num_nfe}")
+
 
     def logout(self):
         self.hide()
@@ -365,8 +348,8 @@ QGroupBox::title { subcontrol-origin: margin; left: 250px; color: #196464; paddi
         """)
         self.area_log.clear()
         self.filtro_numnfe.hide()
-        self.filtro_data.hide()
-        self.filtro_tipo.hide()
+        # self.filtro_data.hide()
+        # self.filtro_tipo.hide()
         self.btn_filtrar.hide()
         self.btn_select_arq.show()
 
@@ -387,8 +370,8 @@ QGroupBox::title { subcontrol-origin: margin; left: 250px; color: #196464; paddi
         self.btn_select_arq.hide()
         self.area_log.clear()
         self.filtro_numnfe.hide()
-        self.filtro_data.hide()
-        self.filtro_tipo.hide()
+        # self.filtro_data.hide()
+        # self.filtro_tipo.hide()
         self.btn_filtrar.hide()
         self.btn_select_xml.show()
         self.grupo_log.setTitle("Validar XML")
@@ -408,8 +391,8 @@ QGroupBox::title { subcontrol-origin: margin; left: 250px; color: #196464; paddi
     def pegar_cotacao(self):
         self.area_log.clear()
         self.filtro_numnfe.hide()
-        self.filtro_data.hide()
-        self.filtro_tipo.hide()
+        # self.filtro_data.hide()
+        # self.filtro_tipo.hide()
         self.btn_filtrar.hide()
         self.btn_select_xml.hide()
         self.btn_select_arq.hide()
@@ -422,8 +405,8 @@ QGroupBox::title { subcontrol-origin: margin; left: 250px; color: #196464; paddi
         self.btn_select_xml.hide()
         self.btn_select_arq.hide()
         self.filtro_numnfe.show()
-        self.filtro_data.show()
-        self.filtro_tipo.show()
+        # self.filtro_data.show()
+        # self.filtro_tipo.show()
         self.btn_filtrar.show()
         self.area_log.clear()
         self.area_log.append(f'Em desenvolvimento.  ')
@@ -441,6 +424,43 @@ QGroupBox::title { subcontrol-origin: margin; left: 250px; color: #196464; paddi
             <div><b>Cotação Euro: </b> {round(cotacao.response['cotacao']['EUR'], 2) if cotacao.response['cotacao']['EUR'] else 'Não há cotação de Euro para final de semana'}</div>
             <div><b>Status API:</b> {cotacao.status_code}</div>
         """
+        self.area_log.append(bloco + '<div style="height: 120px;"></div>')
+
+    def add_result_db(self, element):
+        try:
+            bloco = f"""
+            <div style="
+                background-color: #e8f5f4;
+                border: 2px solid #9bc8c7;
+                border-radius: 8px;
+                padding: 10px;
+                margin-bottom: 10px;
+            ">
+                <div><b>Nota:</b> {element['Nota']}</div>
+                <div><b>Tipo Nota:</b> Nova</div>
+                <div><b>Estado Nota:</b> {element['estado_nota']}</div>
+                <div><b>Valor Total Nota:</b> R${element['vnota']}</div>
+                <div><b>Valor Imposto Nota IBS/CBS/IS:</b> R${element['vnotaibs']}/ R${element['vnotacbs']}/ R${element['vnotais']}</div>
+                <div><b>Valor Calculado IBS/CBS/IS:</b> R${element['vappibs']}/ R${element['vappcbs']}/ R${element['vappis']}</div>
+            </div>
+            """
+        except KeyError:
+            bloco = f"""
+            <div style="
+                background-color: #e8f5f4;
+                border: 2px solid #9bc8c7;
+                border-radius: 8px;
+                padding: 10px;
+                margin-bottom: 10px;
+            ">
+                <div><b>Nota:</b> {element['Nota']}</div>
+                <div><b>Tipo Nota:</b> Antiga</div>
+                <div><b>Estado Nota:</b> {element['estado_nota']}</div>
+                <div><b>Valor Total Nota:</b> R${element['vnota']}</div>
+                <div><b>Valor Simulado IBS/CBS/IS:</b> R${element['vsimuibs']}/ R${element['vsimucbs']}/ R${element['vsimuis']}</div>
+            </div>
+            """
+
         self.area_log.append(bloco + '<div style="height: 120px;"></div>')
 
     def adicionar_resultado_api(self, nome_nota, response, status_code):
@@ -537,7 +557,19 @@ QGroupBox::title { subcontrol-origin: margin; left: 250px; color: #196464; paddi
                 nome_nota = i.split('/')[-1]
                 cal_trib = CalTributos(estado, valores_notas['BASE_CALC'])
                 cotacao = Api_cotacao(invoice_price=(valores_notas['BASE_CALC']))
-                self.adicionar_resultado(nota_nova, nome_nota, valores_notas, cal_trib.calcular_json(), cotacao.response)
+
+
+                tributes_values = cal_trib.calcular_json()
+                if nota_nova:
+                    db_treatment = Database_integration(chave_nfe=resultado.invoice_key, data_nfe=resultado.invoice_date, values_list=[valores_notas['BASE_CALC'], valores_notas['IBS'], valores_notas['CBS'], valores_notas['IS'], tributes_values['IBS'], tributes_values['CBS'], tributes_values['IS']], estado=estado, validation=False) #, chave_nfe:str, data_nfe:str, values_list:list, estado:str, validation:bool
+                    if db_treatment.check_duplicates(chave_nfe=resultado.invoice_key, tipo_nota=nota_nova):
+                        db_treatment.insert_document_new()
+                else:
+                    db_treatment = Database_integration(chave_nfe=resultado.invoice_key, data_nfe=resultado.invoice_date, values_list=[valores_notas['BASE_CALC'], tributes_values['IBS'], tributes_values['CBS'], tributes_values['IS']], estado=estado, validation=False) #, chave_nfe:str, data_nfe:str, values_list:list, estado:str, validation:bool
+                    if db_treatment.check_duplicates(chave_nfe=resultado.invoice_key, tipo_nota=nota_nova):
+                        db_treatment.insert_document_old()
+
+                self.adicionar_resultado(nota_nova, nome_nota, valores_notas, tributes_values, cotacao.response)
                 cont += 1
         else:
             cont = 0

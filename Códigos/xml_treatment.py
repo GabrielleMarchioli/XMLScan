@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 import os
-#apenas para developer, depois o caminho vai dar pela tela do tkinter
+from datetime import datetime
+
 caminho = os.getcwd()
 
 class Xml_Treatment:
@@ -9,6 +10,8 @@ class Xml_Treatment:
         self.root = self._xml_tree()
         self.ns = {"nfe": "http://www.portalfiscal.inf.br/nfe"}
         self.state = self._state()
+        self.invoice_key = None
+        self.invoice_date = None
 
     @property
     def return_string_invoice(self):
@@ -28,6 +31,9 @@ class Xml_Treatment:
     def _isnew_invoice(self):
         root = self._xml_tree()
         # os valores de ibs e cbs estão dentro da mesma tag IBCCBSTot
+        self.invoice_key = root.findall(".//nfe:infNFe", self.ns)[0].attrib['Id'][3:]
+        invoice_date = root.find(".//nfe:ide", self.ns).find('nfe:dhEmi', self.ns).text.split('T')[0]
+        self.invoice_date = datetime.strptime(invoice_date, '%Y-%m-%d').strftime('%d-%m-%Y')
         ibs_cbs = root.findall(".//nfe:IBSCBSTot", self.ns)
 
         # is_imposto = root.findall(".//nfe:IS", self.ns) esta dando erro quando a nota n tem mas ela é valida (validar)
@@ -108,17 +114,3 @@ class Xml_Treatment:
     @staticmethod
     def get_float(tag: float):
         return float(tag.text) if tag is not None else 0.0
-#
-# if __name__ == "__main__":
-#     # rodar em loop de acordo com o numero de notas
-#     cont = 0
-#     for i in os.listdir(f'{caminho.split('Códigos')[0]}\\Notas Antigas\\'):
-#         caminho_nota = f'{caminho.split('Códigos')[0]}\\Notas Antigas\\{i}'
-#         # inicia a classe e pega os valores presentes na nota
-#         resultado = Xml_Treatment(caminho_nota)
-#         valores_notas = resultado.return_elements_taxes
-#         estado = resultado.state
-#         # chama a classe de calcular o tributo
-#         cal_trib = CalTributos(estado, valores_notas['BASE_CALC'])
-#         print(f'Valores da nota {cont + 1} do estado de {estado}: \n{valores_notas}\n\nValor dos impostos\n{cal_trib.calcular_json()}\n')
-#         cont +=1
